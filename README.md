@@ -1,3 +1,4 @@
+   ### 🚀 Live Demo: [https://smartsync-ai-db0p.onrender.com]
 # 🎬 SmartSync AI - Cloud Media Hub
 
 **SmartSync AI** is a modern, full-stack SaaS web application built with **FastAPI** and **Tailwind CSS**. It allows users to download YouTube media, manage personalized libraries, and leverage AI-powered metadata extraction, all wrapped in a stunning "Cyber AI" glassmorphism interface.
