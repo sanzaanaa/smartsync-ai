@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+yt-dlp
+sqlalchemy
+bcrypt
+python-jose[cryptography]
+python-multipart

@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSync AI</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23a855f7'/%3E%3Cpath d='M50 25 L50 65 M35 50 L50 65 L65 50' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #a855f7;
+            --secondary: #06b6d4;
+        }
+
+        body.theme-red {
+            --primary: #ef4444;
+            --secondary: #f97316;
+            background-image: radial-gradient(at 0% 0%, hsla(0, 16%, 7%, 1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(15, 49%, 30%, 1) 0, transparent 50%);
+        }
+
+        body.theme-green {
+            --primary: #10b981;
+            --secondary: #3b82f6;
+            background-image: radial-gradient(at 0% 0%, hsla(142, 16%, 7%, 1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(217, 49%, 30%, 1) 0, transparent 50%);
+        }
+
+        body {
+            background-color: #0f172a;
+            background-image: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            transition: background 0.5s ease;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .neon-text {
+            text-shadow: 0 0 20px var(--primary);
+        }
+
+        .neon-border:focus {
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+            border-color: #38bdf8;
+        }
+
+        .progress-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
+            transition: width 0.4s;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: -100% 0;
+            }
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border-left: 4px solid;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            animation: slideIn 0.4s;
+        }
+
+        .toast.success {
+            border-left-color: #22c55e;
+        }
+
+        .toast.error {
+            border-left-color: #ef4444;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+        }
+
+        .text-gradient {
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            background-image: linear-gradient(to right, var(--primary), var(--secondary));
+        }
+
+        .heart-btn {
+            transition: transform 0.2s;
+            cursor: pointer;
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        .heart-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .heart-btn.liked {
+            color: #ef4444;
+        }
+
+        .heart-btn.not-liked {
+            color: #94a3b8;
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 5px var(--primary);
+            }
+
+            50% {
+                box-shadow: 0 0 20px var(--primary);
+            }
+        }
+
+        .ai-btn {
+            animation: pulse-glow 2s infinite;
+            cursor: pointer;
+        }
+
+        .strength-bar {
+            height: 4px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .strength-weak {
+            background: #ef4444;
+            width: 33%;
+        }
+
+        .strength-medium {
+            background: #f59e0b;
+            width: 66%;
+        }
+
+        .strength-strong {
+            background: #22c55e;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body class="text-white min-h-screen flex flex-col items-center">
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- AUTH MODAL -->
+    <div id="authModal" class="modal-overlay">
+        <div class="glass-panel rounded-3xl p-8 w-full max-w-md space-y-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-extrabold text-gradient neon-text">SmartSync AI</h1>
+                <p id="authSubtitle" class="text-slate-400 text-sm mt-2">Sign in to access your dashboard</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="authUsername" placeholder="Username"
+                    class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none neon-border">
+                <div>
+                    <input type="password" id="authPassword" placeholder="Password" oninput="checkPasswordStrength()"
+                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none neon-border">
+                    <button onclick="togglePasswordVisibility()"
+                        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
+                        <svg id="eyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                            </path>
+                        </svg>
+                        <svg id="eyeOffIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532-7.532l3.29 3.29M3 3l5.001 5.001m4.999-4.999L21 21">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="passwordStrengthContainer" class="hidden mt-2 space-y-1">
+                    <div class="flex justify-between text-xs"><span class="text-slate-400">Password Strength</span><span
+                            id="strengthText" class="text-slate-400"></span></div>
+                    <div class="bg-slate-700 rounded-full overflow-hidden">
+                        <div id="strengthBar" class="strength-bar"></div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="handleAuth()" id="authBtn"
+                class="w-full btn-primary text-white font-bold py-3.5 rounded-xl transition-all">Sign In</button>
+            <p class="text-center text-sm text-slate-400">
+                <span id="authToggleText">Don't have an account?</span>
+                <button onclick="toggleAuthMode()" class="text-cyan-400 font-semibold ml-1">Sign Up</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="mainDashboard" class="w-full max-w-3xl space-y-6 p-4 md:p-8 hidden">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 glass-panel rounded-2xl p-4">
+            <h1 class="text-xl font-bold text-gradient">SmartSync AI</h1>
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="text-right">
+                    <p id="userDisplay" class="text-sm font-semibold text-white">User</p>
+                    <p id="premiumBadge" class="text-[10px] font-bold text-yellow-400 hidden">💎 SMARTSYNC PRO</p>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <span class="text-xs text-slate-400 font-semibold">Theme:</span>
+                    <select id="themePicker" onchange="changeTheme(this.value)"
+                        class="bg-transparent border-none text-sm text-white focus:outline-none cursor-pointer font-bold">
+                        <option value="purple" class="bg-slate-900">🟣 Purple</option>
+                        <option value="red" class="bg-slate-900">🔴 Red</option>
+                        <option value="green" class="bg-slate-900">🟢 Green</option>
+                    </select>
+                </div>
+                <button id="upgradeBtn" onclick="showUpgradeModal()"
+                    class="hidden bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold px-4 py-2 rounded-lg text-sm">⭐
+                    Upgrade</button>
+                <button onclick="logout()"
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">Logout</button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD STATS CARDS -->
+        <div class="grid grid-cols-3 gap-4">
+            <div class="glass-panel rounded-2xl p-4 text-center">
+                <p class="text-3xl font-bold text-gradient" id="statDownloads">0</p>
+                <p class="text-xs text-slate-400 mt-1">Total Downloads</p>
+            </div>
+            <div class="glass-panel rounded-2xl p-4 text-center">
+                <p class="text-3xl font-bold text-gradient" id="statFavorites">0</p>
+                <p class="text-xs text-slate-400 mt-1">Total Favorites</p>
+            </div>
+            <div class="glass-panel rounded-2xl p-4 text-center">
+                <p class="text-3xl font-bold text-gradient" id="statDays">0</p>
+                <p class="text-xs text-slate-400 mt-1">Days Active</p>
+            </div>
+        </div>
+
+        <div class="glass-panel rounded-3xl p-6 md:p-8 space-y-6">
+            <div>
+                <label class="block text-sm font-semibold text-slate-300 mb-2">YouTube URL</label>
+                <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=..."
+                    class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:outline-none neon-border">
+            </div>
+            <div id="playlistBanner"
+                class="hidden bg-yellow-500/10 border border-yellow-500/50 rounded-xl p-4 flex items-center gap-3">
+                <span class="text-2xl">📂</span>
+                <div>
+                    <p class="text-yellow-400 font-bold text-sm">Playlist Detected!</p>
+                    <p id="playlistText" class="text-slate-300 text-xs">This will download the entire playlist.</p>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">Format</label>
+                    <select id="formatType"
+                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:outline-none neon-border">
+                        <option value="mp3">🎵 MP3 (Audio) <span id="audioQualityText">(128kbps)</span></option>
+                        <option value="mp4">🎬 MP4 (Video) <span id="videoQualityText">(Max 1080p)</span></option>
+                    </select>
+                    <p id="premiumUpgradeHint" class="text-xs text-yellow-400 mt-2 hidden">💎 Upgrade to Pro for 320kbps
+                        Audio, 4K Video & AI Summaries!</p>
+                </div>
+                <div class="flex-1 flex items-end">
+                    <button onclick="startDownload()" id="downloadBtn"
+                        class="w-full btn-primary text-white font-bold py-3.5 rounded-xl shadow-lg">Download &
+                        Process</button>
+                </div>
+            </div>
+            <div id="progressBox" class="hidden space-y-3 bg-slate-900/30 p-5 rounded-2xl border border-slate-700/50">
+                <div class="flex justify-between text-sm"><span id="progressText"
+                        class="text-slate-300">Initializing...</span><span id="progressPercent" class="font-bold"
+                        style="color: var(--secondary)">0%</span></div>
+                <div class="w-full progress-track rounded-full h-3 overflow-hidden">
+                    <div id="progressBar" class="progress-fill h-3 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS, SEARCH, AND FILTER -->
+        <div class="glass-panel rounded-3xl p-6 md:p-8">
+            <div class="flex border-b border-slate-700 mb-6">
+                <button onclick="switchTab('history')" id="tabHistory"
+                    class="px-4 py-2 text-sm font-semibold border-b-2 border-cyan-400 text-cyan-400 transition-colors">Recent
+                    Downloads</button>
+                <button onclick="switchTab('favorites')" id="tabFavorites"
+                    class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors">❤️
+                    Favorites</button>
+            </div>
+
+            <!-- SEARCH BAR & FILTER -->
+            <div class="flex flex-col md:flex-row gap-3 mb-4">
+                <input type="text" id="historySearch" oninput="loadCurrentTab()" placeholder="🔍 Search your history..."
+                    class="flex-1 bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none neon-border">
+                <select id="historyFilter" onchange="loadCurrentTab()"
+                    class="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                    <option value="all">📂 All</option>
+                    <option value="mp4">🎬 MP4</option>
+                    <option value="mp3">🎵 MP3</option>
+                </select>
+            </div>
+
+            <div id="contentList" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- AI SUMMARY MODAL -->
+    <div id="summaryModal" class="modal-overlay hidden">
+        <div class="glass-panel rounded-3xl p-8 w-full max-w-lg space-y-6 transform transition-all">
+            <div class="flex justify-between items-start">
+                <h2 class="text-2xl font-extrabold text-gradient flex items-center gap-2"><span>🤖</span> AI Video
+                    Summary</h2>
+                <button onclick="closeSummaryModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div id="summaryLoading" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mb-4"></div>
+                <p class="text-slate-300">Analyzing video metadata and generating key points...</p>
+            </div>
+            <div id="summaryContent" class="hidden space-y-4">
+                <h3 id="summaryTitle" class="text-lg font-bold text-white"></h3>
+                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-700 space-y-3">
+                    <p id="summaryPoint1" class="text-slate-300 flex gap-3"><span
+                            class="text-cyan-400 font-bold">1.</span> <span></span></p>
+                    <p id="summaryPoint2" class="text-slate-300 flex gap-3"><span
+                            class="text-cyan-400 font-bold">2.</span> <span></span></p>
+                    <p id="summaryPoint3" class="text-slate-300 flex gap-3"><span
+                            class="text-cyan-400 font-bold">3.</span> <span></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPGRADE MODAL -->
+    <div id="upgradeModal" class="modal-overlay hidden">
+        <div class="glass-panel rounded-3xl p-8 w-full max-w-lg space-y-6 text-center">
+            <div class="text-6xl">💎</div>
+            <h2 class="text-3xl font-extrabold text-gradient">Upgrade to Pro</h2>
+            <div class="space-y-2 text-left bg-slate-900/50 p-6 rounded-2xl">
+                <p class="text-slate-300">✓ 📂 Download Entire Playlists</p>
+                <p class="text-slate-300">✓ 🤖 AI Video Summaries</p>
+                <p class="text-slate-300">✓ 🎬 4K & 8K Ultra HD Video</p>
+                <p class="text-slate-300">✓ Unlimited Daily Downloads</p>
+            </div>
+            <button onclick="upgradeAccount()"
+                class="w-full btn-primary text-white font-bold py-4 rounded-xl text-lg">Upgrade Now</button>
+            <button onclick="closeUpgradeModal()" class="text-slate-400 hover:text-white text-sm">Maybe Later</button>
+        </div>
+    </div>
+
+    <script>
+        let isLoginMode = true, authToken = localStorage.getItem('smartsync_token'), currentUser = null;
+        let currentTab = 'history', showPassword = false;
+
+        document.getElementById('videoUrl').addEventListener('input', function (e) {
+            const url = e.target.value;
+            const banner = document.getElementById('playlistBanner');
+            const text = document.getElementById('playlistText');
+            if (url.includes('list=') || url.includes('playlist')) {
+                banner.classList.remove('hidden');
+                if (currentUser && !currentUser.is_premium) { text.innerText = "Playlist downloading is a Premium feature!"; text.className = "text-red-400 text-xs font-bold"; }
+                else { text.innerText = "This will download the entire playlist."; text.className = "text-slate-300 text-xs"; }
+            } else { banner.classList.add('hidden'); }
+        });
+
+        async function checkAuth() {
+            if (!authToken) { showAuthModal(); return; }
+            try {
+                const res = await fetch('/me', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (res.ok) { currentUser = await res.json(); applyTheme(currentUser.theme_color || 'purple'); showDashboard(); }
+                else { logout(); }
+            } catch (e) { logout(); }
+        }
+
+        function showAuthModal() { document.getElementById('authModal').classList.remove('hidden'); document.getElementById('mainDashboard').classList.add('hidden'); }
+        function showDashboard() {
+            document.getElementById('authModal').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
+            document.getElementById('userDisplay').innerText = currentUser.username;
+            document.getElementById('themePicker').value = currentUser.theme_color || 'purple';
+            if (currentUser.is_premium) {
+                document.getElementById('premiumBadge').classList.remove('hidden');
+                document.getElementById('upgradeBtn').classList.add('hidden');
+                document.getElementById('audioQualityText').innerText = '(320kbps)';
+                document.getElementById('videoQualityText').innerText = '(4K Ultra HD)';
+                document.getElementById('premiumUpgradeHint').classList.add('hidden');
+            } else {
+                document.getElementById('premiumBadge').classList.add('hidden');
+                document.getElementById('upgradeBtn').classList.remove('hidden');
+                document.getElementById('audioQualityText').innerText = '(128kbps)';
+                document.getElementById('videoQualityText').innerText = '(1080p)';
+                document.getElementById('premiumUpgradeHint').classList.remove('hidden');
+            }
+            loadStats();
+            loadCurrentTab();
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('authSubtitle').innerText = isLoginMode ? 'Sign in' : 'Create account';
+            document.getElementById('authBtn').innerText = isLoginMode ? 'Sign In' : 'Sign Up';
+            document.getElementById('authToggleText').innerText = isLoginMode ? "No account?" : "Have account?";
+            const strengthContainer = document.getElementById('passwordStrengthContainer');
+            if (isLoginMode) strengthContainer.classList.add('hidden'); else strengthContainer.classList.remove('hidden');
+            document.getElementById('authPassword').value = '';
+            document.getElementById('strengthBar').className = 'strength-bar';
+            document.getElementById('strengthText').innerText = '';
+        }
+
+        function togglePasswordVisibility() {
+            showPassword = !showPassword;
+            const passwordInput = document.getElementById('authPassword');
+            const eyeIcon = document.getElementById('eyeIcon');
+            const eyeOffIcon = document.getElementById('eyeOffIcon');
+            if (showPassword) { passwordInput.type = 'text'; eyeIcon.classList.add('hidden'); eyeOffIcon.classList.remove('hidden'); }
+            else { passwordInput.type = 'password'; eyeIcon.classList.remove('hidden'); eyeOffIcon.classList.add('hidden'); }
+        }
+
+        function checkPasswordStrength() {
+            if (isLoginMode) return;
+            const password = document.getElementById('authPassword').value;
+            const strengthBar = document.getElementById('strengthBar');
+            const strengthText = document.getElementById('strengthText');
+            if (password.length === 0) { strengthBar.className = 'strength-bar'; strengthText.innerText = ''; return; }
+            let strength = 0;
+            if (password.length >= 8) strength++; if (password.length >= 12) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++; if (/\d/.test(password)) strength++; if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            if (strength <= 2) { strengthBar.className = 'strength-bar strength-weak'; strengthText.innerText = 'Weak'; strengthText.className = 'text-red-400'; }
+            else if (strength <= 4) { strengthBar.className = 'strength-bar strength-medium'; strengthText.innerText = 'Medium'; strengthText.className = 'text-yellow-400'; }
+            else { strengthBar.className = 'strength-bar strength-strong'; strengthText.innerText = 'Strong'; strengthText.className = 'text-green-400'; }
+        }
+
+        async function handleAuth() {
+            const username = document.getElementById('authUsername').value;
+            const password = document.getElementById('authPassword').value;
+            if (!username || !password) return showToast("Fill all fields", "error");
+            document.getElementById('authBtn').innerText = "Processing...";
+            try {
+                if (isLoginMode) {
+                    const formData = new URLSearchParams(); formData.append('username', username); formData.append('password', password);
+                    const res = await fetch('/login', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail);
+                    authToken = data.access_token; currentUser = data;
+                    localStorage.setItem('smartsync_token', authToken);
+                    applyTheme(currentUser.theme_color); showDashboard();
+                } else {
+                    const res = await fetch('/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, theme_color: 'purple' }) });
+                    if (!res.ok) throw new Error((await res.json()).detail);
+                    showToast("Account created! Sign in.", 'success'); toggleAuthMode();
+                }
+            } catch (error) { showToast(error.message, "error"); }
+            finally { document.getElementById('authBtn').innerText = isLoginMode ? 'Sign In' : 'Sign Up'; }
+        }
+
+        function logout() { localStorage.removeItem('smartsync_token'); authToken = null; currentUser = null; showAuthModal(); }
+        function applyTheme(theme) { document.body.className = `text-white min-h-screen flex flex-col items-center theme-${theme}`; }
+        async function changeTheme(theme) {
+            applyTheme(theme);
+            await fetch('/update-theme', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ theme_color: theme }) });
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div'); toast.className = `toast ${type}`;
+            toast.innerHTML = `<span class="text-2xl">${type === 'success' ? '✅' : '❌'}</span><div><p class="font-bold text-sm">${type === 'success' ? 'Success' : 'Error'}</p><p class="text-xs text-slate-400">${msg}</p></div>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => { toast.style.animation = 'fadeOut 0.4s forwards'; setTimeout(() => toast.remove(), 400); }, 4000);
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabHist = document.getElementById('tabHistory');
+            const tabFav = document.getElementById('tabFavorites');
+            const filter = document.getElementById('historyFilter');
+            const search = document.getElementById('historySearch');
+            if (tab === 'history') {
+                tabHist.className = "px-4 py-2 text-sm font-semibold border-b-2 border-cyan-400 text-cyan-400 transition-colors";
+                tabFav.className = "px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors";
+                filter.classList.remove('hidden'); search.classList.remove('hidden');
+            } else {
+                tabFav.className = "px-4 py-2 text-sm font-semibold border-b-2 border-red-400 text-red-400 transition-colors";
+                tabHist.className = "px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors";
+                filter.classList.add('hidden'); search.classList.add('hidden');
+            }
+            loadCurrentTab();
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const stats = await res.json();
+                document.getElementById('statDownloads').innerText = stats.total_downloads;
+                document.getElementById('statFavorites').innerText = stats.total_favorites;
+                document.getElementById('statDays').innerText = stats.days_member;
+            } catch (e) { console.error("Stats load failed", e); }
+        }
+
+        async function loadCurrentTab() {
+            const list = document.getElementById('contentList');
+            list.innerHTML = '<p class="text-slate-500 italic text-center py-4">Loading...</p>';
+            const searchTerm = document.getElementById('historySearch').value.toLowerCase();
+
+            if (currentTab === 'history') {
+                const filter = document.getElementById('historyFilter').value;
+                const res = await fetch(`/api/history?format_type=${filter}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                let history = await res.json();
+                if (searchTerm) history = history.filter(h => h.title.toLowerCase().includes(searchTerm));
+                if (history.length === 0) { list.innerHTML = '<p class="text-slate-500 italic text-center py-4">No downloads found.</p>'; return; }
+                const favRes = await fetch('/favorites', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const favs = await favRes.json();
+                const favUrls = new Set(favs.map(f => f.url));
+
+                // UPDATED: Added the "💾 Download" button here
+                list.innerHTML = history.map(h => `
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/40 p-4 rounded-xl border border-slate-700/50 hover:border-purple-500/30 transition-colors gap-3">
+            <div class="flex-1 min-w-0 pr-4">
+                <p class="text-white font-medium truncate">${h.title}</p>
+                <p class="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                    <span class="bg-slate-800 px-2 py-0.5 rounded text-slate-300">${h.format_type === 'mp4' ? '🎬' : '🎵'} ${h.format_type.toUpperCase()}</span>
+                    <span>${h.date}</span>
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="/download-file/${encodeURIComponent(h.filename)}" download class="bg-slate-800 hover:bg-slate-700 text-green-400 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors">
+                    💾 Download
+                </a>
+                <button onclick="generateSummary('${h.url}')" class="ai-btn bg-slate-800 hover:bg-slate-700 text-cyan-400 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors">✨ AI Summary</button>
+                <button onclick="toggleFavorite(this)" data-title="${h.title}" data-url="${h.url}" data-format="${h.format_type}" class="heart-btn ${favUrls.has(h.url) ? 'liked' : 'not-liked'} p-2 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="${favUrls.has(h.url) ? 'currentColor' : 'none'}" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                </button>
+            </div>
+        </div>`).join('');
+            } else {
+                const res = await fetch('/favorites', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                let favs = await res.json();
+                if (searchTerm) favs = favs.filter(f => f.title.toLowerCase().includes(searchTerm));
+                if (favs.length === 0) { list.innerHTML = '<p class="text-slate-500 italic text-center py-4">No favorites yet.</p>'; return; }
+
+                list.innerHTML = favs.map(f => `
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/40 p-4 rounded-xl border border-red-500/30 hover:border-red-500/60 transition-colors gap-3">
+            <div class="flex-1 min-w-0 pr-4">
+                <p class="text-white font-medium truncate">${f.title}</p>
+                <p class="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                    <span class="bg-slate-800 px-2 py-0.5 rounded text-slate-300">${f.format_type === 'mp4' ? '🎬' : '🎵'} ${f.format_type.toUpperCase()}</span>
+                    <span>${f.added_at}</span>
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="generateSummary('${f.url}')" class="ai-btn bg-slate-800 hover:bg-slate-700 text-cyan-400 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors">✨ AI Summary</button>
+                <button onclick="removeFavorite(${f.id})" class="heart-btn liked p-2 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                </button>
+            </div>
+        </div>`).join('');
+            }
+        }
+
+        // BULLETPROOF HEART BUTTON LOGIC (Uses data attributes to prevent quote-breaking bugs)
+        async function toggleFavorite(btnElement) {
+            try {
+                const title = btnElement.getAttribute('data-title');
+                const url = btnElement.getAttribute('data-url');
+                const format_type = btnElement.getAttribute('data-format');
+                const isLiked = btnElement.classList.contains('liked');
+
+                if (isLiked) {
+                    const res = await fetch('/favorites', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                    const favs = await res.json();
+                    const fav = favs.find(f => f.url === url);
+                    if (fav) {
+                        await fetch(`/favorites/${fav.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                        showToast("Removed from favorites", "success");
+                    }
+                } else {
+                    const res = await fetch('/favorites', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ title, url, format_type }) });
+                    const data = await res.json();
+                    if (res.ok && (data.status === 'success' || data.status === 'already_exists')) {
+                        showToast("Added to favorites! ❤️", "success");
+                    } else {
+                        showToast(data.detail || "Failed to add", "error");
+                    }
+                }
+                loadStats();
+                loadCurrentTab();
+            } catch (error) { showToast("Error: " + error.message, "error"); }
+        }
+
+        async function removeFavorite(favId) {
+            try {
+                const res = await fetch(`/favorites/${favId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (res.ok) { showToast("Removed from favorites", "success"); loadStats(); loadCurrentTab(); }
+            } catch (error) { showToast("Error: " + error.message, "error"); }
+        }
+
+        async function generateSummary(url) {
+            if (!currentUser.is_premium) { showToast("AI Summary is a Premium feature!", "error"); showUpgradeModal(); return; }
+            document.getElementById('summaryModal').classList.remove('hidden');
+            document.getElementById('summaryLoading').classList.remove('hidden');
+            document.getElementById('summaryContent').classList.add('hidden');
+            try {
+                await new Promise(r => setTimeout(r, 1500));
+                const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+                if (!res.ok) throw new Error("Failed to generate summary");
+                const data = await res.json();
+                document.getElementById('summaryTitle').innerText = data.title;
+                document.getElementById('summaryPoint1').querySelector('span:last-child').innerText = data.summary[0] || "No key points found.";
+                document.getElementById('summaryPoint2').querySelector('span:last-child').innerText = data.summary[1] || "Check the video description for more details.";
+                document.getElementById('summaryPoint3').querySelector('span:last-child').innerText = data.summary[2] || "Watch the full video to learn more!";
+                document.getElementById('summaryLoading').classList.add('hidden');
+                document.getElementById('summaryContent').classList.remove('hidden');
+            } catch (error) { showToast(error.message, "error"); closeSummaryModal(); }
+        }
+        function closeSummaryModal() { document.getElementById('summaryModal').classList.add('hidden'); }
+
+        async function startDownload() {
+            const url = document.getElementById('videoUrl').value;
+            const format = document.getElementById('formatType').value;
+            if (!url) return showToast("Enter a URL", "error");
+            document.getElementById('progressBox').classList.remove('hidden');
+            document.getElementById('progressText').innerText = "Connecting...";
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressPercent').innerText = '0%';
+            document.getElementById('downloadBtn').disabled = true;
+            document.getElementById('downloadBtn').classList.add('opacity-50');
+            try {
+                const res = await fetch('/download', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify({ url, format_type: format }) });
+                const data = await res.json();
+                if (!res.ok) { showToast(data.detail, "error"); if (data.detail.includes("Premium")) showUpgradeModal(); resetUI(); return; }
+                const es = new EventSource(`/progress/${data.download_id}?token=${authToken}`);
+                es.onmessage = (e) => {
+                    const p = JSON.parse(e.data);
+                    if (p.status === 'downloading') {
+                        let text = `Downloading... ${p.speed || ''}`;
+                        if (p.playlist_index && p.playlist_count) text = `Playlist: Video ${p.playlist_index} of ${p.playlist_count} - ${p.speed || ''}`;
+                        document.getElementById('progressText').innerText = text;
+                        document.getElementById('progressBar').style.width = p.percent;
+                        document.getElementById('progressPercent').innerText = p.percent;
+                    } else if (p.status === 'success') { showToast(`Saved: ${p.filename}`, 'success'); loadStats(); loadCurrentTab(); es.close(); resetUI(); }
+                    else if (p.status === 'error') { showToast(p.message, 'error'); es.close(); resetUI(); }
+                };
+            } catch (error) { showToast(error.message, "error"); resetUI(); }
+        }
+        function resetUI() { document.getElementById('progressBox').classList.add('hidden'); document.getElementById('downloadBtn').disabled = false; document.getElementById('downloadBtn').classList.remove('opacity-50'); }
+
+        function showUpgradeModal() { document.getElementById('upgradeModal').classList.remove('hidden'); }
+        function closeUpgradeModal() { document.getElementById('upgradeModal').classList.add('hidden'); }
+        async function upgradeAccount() {
+            const res = await fetch('/upgrade-to-premium', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) { currentUser.is_premium = true; showToast('Upgraded to Pro! 💎', 'success'); closeUpgradeModal(); showDashboard(); }
+        }
+        checkAuth();
+    </script>
+</body>
+
+</html>
