@@ -35,3 +35,5 @@
    git clone https://github.com/sanzaanaa/smartsync-ai.git
    cd smartsync-ai
    ```
+   ### ⚠️ Cloud Deployment Note
+YouTube aggressively blocks datacenter IP addresses (like those used by Render.com) to prevent automated scraping. While the app is fully containerized with Docker and deployed via CI/CD to demonstrate cloud engineering skills, actual video extraction requires a residential IP. For the best experience, the application is designed to be run locally.
