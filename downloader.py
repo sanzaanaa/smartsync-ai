@@ -2,15 +2,14 @@ import yt_dlp
 import os
 from pathlib import Path
 
-
 def download_media(url, format_type="mp3", is_premium=False, progress_callback=None):
-    # Save to a local folder inside the project (Works on Cloud!)
+    # Use a local temp folder for cloud compatibility
     base_dir = Path("temp_downloads")
     if format_type == "mp3":
         downloads_dir = base_dir / "MP3"
     else:
         downloads_dir = base_dir / "MP4"
-
+    
     downloads_dir.mkdir(parents=True, exist_ok=True)
     output_path = str(downloads_dir / "%(title)s.%(ext)s")
 
@@ -24,20 +23,40 @@ def download_media(url, format_type="mp3", is_premium=False, progress_callback=N
                     if 'playlist_index' in d and 'playlist_count' in d:
                         extra_data['playlist_index'] = d['playlist_index']
                         extra_data['playlist_count'] = d['playlist_count']
-                    progress_callback(
-                        {'status': 'downloading', 'percent': percent, 'speed': speed, **extra_data})
-                except:
+                    progress_callback({'status': 'downloading', 'percent': percent, 'speed': speed, **extra_data})
+                except: 
                     pass
             elif d['status'] == 'finished':
-                progress_callback(
-                    {'status': 'finished', 'message': 'Download complete! Processing...'})
+                progress_callback({'status': 'finished', 'message': 'Download complete! Processing...'})
+
+    # Updated options to avoid YouTube bot detection
+    common_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'progress_hooks': [progress_hook],
+        'outtmpl': output_path,
+        # Anti-detection options
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'referer': 'https://www.youtube.com/',
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web', 'android'],
+                'player_skip': ['webpage']
+            }
+        },
+        'retry_sleep': {'extractor': 10},  # Wait before retrying
+    }
 
     if format_type == "mp3":
         quality = '320' if is_premium else '128'
         ydl_opts = {
+            **common_opts,
             'format': 'bestaudio/best',
-            'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': quality}],
-            'outtmpl': output_path, 'quiet': True, 'no_warnings': True, 'progress_hooks': [progress_hook],
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': quality
+            }],
         }
     else:
         if is_premium:
@@ -45,16 +64,16 @@ def download_media(url, format_type="mp3", is_premium=False, progress_callback=N
         else:
             format_str = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'
         ydl_opts = {
+            **common_opts,
             'format': format_str,
-            'outtmpl': output_path, 'quiet': True, 'no_warnings': True,
-            'merge_output_format': 'mp4', 'progress_hooks': [progress_hook],
+            'merge_output_format': 'mp4',
         }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
-            if format_type == "mp3":
+            if format_type == "mp3": 
                 filename = filename.rsplit('.', 1)[0] + '.mp3'
             return {
                 "status": "success",
@@ -62,4 +81,22 @@ def download_media(url, format_type="mp3", is_premium=False, progress_callback=N
                 "title": info.get('title', 'Unknown')
             }
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        error_msg = str(e)
+        # Check for specific YouTube errors
+        if "Sign in to confirm" in error_msg or "bot" in error_msg.lower():
+            return {
+                "status": "error", 
+                "message": "YouTube is blocking this download. Please try a different video or wait a few minutes."
+            }
+        elif "unavailable" in error_msg.lower():
+            return {
+                "status": "error", 
+                "message": "This video is private, age-restricted, or unavailable."
+            }
+        elif "private" in error_msg.lower():
+            return {
+                "status": "error", 
+                "message": "This video is private. Please use a public video."
+            }
+        else:
+            return {"status": "error", "message": error_msg}
